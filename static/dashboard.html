@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lekha Dues</title>
+<style>
+  :root {
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --good: #0ca30c;
+    --warning: #fab219;
+    --serious: #ec835a;
+    --critical: #d03b3b;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255, 255, 255, 0.10);
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+  h1 { font-size: 20px; margin: 0; font-weight: 650; }
+  h2 { font-size: 15px; margin: 32px 0 8px; font-weight: 600; }
+  .sub { color: var(--ink-2); margin: 4px 0 0; }
+  .note { color: var(--muted); font-size: 12px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 20px 0 16px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .tile .label { color: var(--ink-2); font-size: 13px; }
+  .tile .value { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .tile .hint { color: var(--muted); font-size: 12px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 10px; color: var(--ink-2); font-size: 13px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: none; }
+  .stage {
+    position: relative; height: 460px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  }
+  .stage canvas { display: block; }
+  .stage .labels { position: absolute; inset: 0; pointer-events: none; }
+  .bar-label {
+    text-align: center; font-size: 12px; line-height: 1.25; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+    padding: 2px 6px; white-space: nowrap; transform: translateY(-14px);
+  }
+  .bar-label b { display: block; font-variant-numeric: tabular-nums; }
+  .bar-label small { color: var(--ink-2); }
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 2; min-width: 170px;
+    background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; font-size: 13px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12); display: none;
+  }
+  .tooltip .name { font-weight: 600; margin-bottom: 4px; }
+  .tooltip .row { display: flex; justify-content: space-between; gap: 16px; color: var(--ink-2); }
+  .tooltip .row b { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 600; }
+  .message {
+    position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: var(--ink-2);
+  }
+  .message a { color: inherit; }
+  .login { display: grid; gap: 10px; width: min(280px, 100%); text-align: left; }
+  .login h3 { margin: 0 0 2px; font-size: 16px; color: var(--ink); }
+  .login label { display: grid; gap: 4px; font-size: 13px; }
+  .login input {
+    font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--baseline);
+    background: var(--page); color: var(--ink);
+  }
+  .login button, .link-button {
+    font: inherit; cursor: pointer; border-radius: 8px;
+  }
+  .login button { padding: 9px 12px; border: none; background: var(--ink); color: var(--page); font-weight: 600; }
+  .login .error { color: var(--critical); min-height: 1.2em; font-size: 13px; margin: 0; }
+  .link-button { background: none; border: 1px solid var(--border); color: var(--ink-2); padding: 3px 10px; margin-left: 8px; }
+  .controls-hint { position: absolute; left: 12px; bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--grid); }
+  th { color: var(--ink-2); font-weight: 600; font-size: 13px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+  .status { display: inline-flex; align-items: center; gap: 6px; }
+  .table-wrap { overflow-x: auto; }
+  .table-wrap table { min-width: 560px; }
+  @media (max-width: 600px) {
+    .stage { height: 360px; }
+    .tile .value { font-size: 22px; }
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Who owes the shop</h1>
+      <p class="sub">Unpaid balance per customer. Taller bar = more money due; colour = age of their oldest unpaid bill.</p>
+    </div>
+    <span class="note"><span id="source"></span><button class="link-button" id="logout" hidden>Log out</button></span>
+  </header>
+
+  <section class="tiles" aria-label="Summary">
+    <div class="tile"><div class="label">Total outstanding</div><div class="value" id="t-total">–</div></div>
+    <div class="tile"><div class="label">Customers with dues</div><div class="value" id="t-count">–</div></div>
+    <div class="tile"><div class="label">Oldest unpaid bill</div><div class="value" id="t-oldest">–</div><div class="hint" id="t-oldest-who"></div></div>
+  </section>
+
+  <div class="legend" id="legend" aria-label="Colour key"></div>
+
+  <div class="stage" id="stage">
+    <div class="labels" id="labels"></div>
+    <div class="tooltip" id="tooltip" role="status"></div>
+    <div class="message" id="message"></div>
+    <span class="note controls-hint">Drag to rotate · scroll to zoom · hover a bar for details</span>
+  </div>
+
+  <h2>Table view</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Customer</th>
+          <th class="num">Balance due</th>
+          <th class="num">Unpaid bills</th>
+          <th class="num">Oldest bill</th>
+          <th>Age</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+</main>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
+
+// ---------- Data ----------
+
+// Age buckets use the reserved status colours, always shown with a text label.
+const AGE_BUCKETS = [
+  { max: 29, label: "Under 30 days", token: "--good" },
+  { max: 59, label: "30–59 days", token: "--warning" },
+  { max: 89, label: "60–89 days", token: "--serious" },
+  { max: Infinity, label: "90+ days", token: "--critical" },
+];
+
+const DEMO_ROWS = [
+  { party_id: 1, name: "Garage A", balance_due: 1254300, unpaid_invoices: 2, oldest_unpaid_days: 41 },
+  { party_id: 2, name: "Motor Works B", balance_due: 864900, unpaid_invoices: 1, oldest_unpaid_days: 96 },
+  { party_id: 3, name: "Service Station C", balance_due: 722500, unpaid_invoices: 3, oldest_unpaid_days: 12 },
+  { party_id: 4, name: "Auto Garage D", balance_due: 456800, unpaid_invoices: 1, oldest_unpaid_days: 67 },
+  { party_id: 5, name: "Bike Point E", balance_due: 313600, unpaid_invoices: 1, oldest_unpaid_days: 5 },
+  { party_id: 6, name: "Truck Care F", balance_due: 156800, unpaid_invoices: 1, oldest_unpaid_days: 33 },
+];
+
+const rupees = (paise) =>
+  (paise / 100).toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+const bucketFor = (days) => AGE_BUCKETS.find((b) => days <= b.max);
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const escapeHtml = (text) =>
+  String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+// ---------- Login token ----------
+// The token is kept for this browser tab only, so closing the tab logs you out.
+
+const TOKEN_KEY = "lekha_token";
+const getToken = () => { try { return sessionStorage.getItem(TOKEN_KEY); } catch { return null; } };
+const setToken = (t) => { try { sessionStorage.setItem(TOKEN_KEY, t); } catch {} };
+const clearToken = () => { try { sessionStorage.removeItem(TOKEN_KEY); } catch {} };
+
+class NeedLogin extends Error {}
+class NotAllowed extends Error {}
+
+async function loadRows() {
+  const demo = new URLSearchParams(location.search).has("demo");
+  if (demo) return { rows: DEMO_ROWS, source: "Sample data (?demo)" };
+  const token = getToken();
+  if (!token) throw new NeedLogin();
+  const response = await fetch("/outstanding", { headers: { Authorization: `Bearer ${token}` } });
+  if (response.status === 401) { clearToken(); throw new NeedLogin(); }
+  if (response.status === 403) throw new NotAllowed();
+  if (!response.ok) throw new Error(`Server replied ${response.status}`);
+  document.getElementById("logout").hidden = false;
+  return { rows: await response.json(), source: "Live data from /outstanding" };
+}
+
+function showLogin() {
+  showMessage(`
+    <form class="login" id="login-form">
+      <h3>Log in to see dues</h3>
+      <label>Username <input name="username" autocomplete="username" required></label>
+      <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+      <button type="submit">Log in</button>
+      <p class="error" id="login-error" role="alert"></p>
+      <a href="?demo">or view sample data</a>
+    </form>`);
+  const form = document.getElementById("login-form");
+  form.username.focus();
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const response = await fetch("/auth/token", { method: "POST", body: new URLSearchParams(new FormData(form)) });
+    if (!response.ok) {
+      document.getElementById("login-error").textContent = "Wrong username or password.";
+      return;
+    }
+    setToken((await response.json()).access_token);
+    location.reload();
+  });
+}
+
+// ---------- Page parts (tiles, legend, table) ----------
+
+function renderSummary(rows) {
+  const total = rows.reduce((sum, r) => sum + r.balance_due, 0);
+  document.getElementById("t-total").textContent = rupees(total);
+  document.getElementById("t-count").textContent = rows.length;
+  if (rows.length) {
+    const oldest = rows.reduce((a, b) => (b.oldest_unpaid_days > a.oldest_unpaid_days ? b : a));
+    document.getElementById("t-oldest").textContent = `${oldest.oldest_unpaid_days} days`;
+    document.getElementById("t-oldest-who").textContent = oldest.name;
+  } else {
+    document.getElementById("t-oldest").textContent = "None";
+  }
+}
+
+function renderLegend() {
+  document.getElementById("legend").innerHTML = AGE_BUCKETS.map(
+    (b) => `<span><i class="swatch" style="background: var(${b.token})"></i>${b.label}</span>`
+  ).join("");
+}
+
+function renderTable(rows) {
+  const body = document.getElementById("table-body");
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="5">Nobody owes the shop anything right now.</td></tr>`;
+    return;
+  }
+  body.innerHTML = rows.map((r) => {
+    const b = bucketFor(r.oldest_unpaid_days);
+    return `<tr>
+      <td>${escapeHtml(r.name)}</td>
+      <td class="num">${rupees(r.balance_due)}</td>
+      <td class="num">${r.unpaid_invoices}</td>
+      <td class="num">${r.oldest_unpaid_days} days</td>
+      <td><span class="status"><i class="swatch" style="background: var(${b.token})"></i>${b.label}</span></td>
+    </tr>`;
+  }).join("");
+}
+
+function showMessage(html) {
+  const box = document.getElementById("message");
+  box.innerHTML = html;
+  box.style.display = "flex";
+}
+
+// ---------- 3D scene ----------
+
+function renderScene(rows) {
+  const stage = document.getElementById("stage");
+  const tooltip = document.getElementById("tooltip");
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 200);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  stage.prepend(renderer.domElement);
+
+  const labelRenderer = new CSS2DRenderer({ element: document.getElementById("labels") });
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 1.6));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.4);
+  sun.position.set(6, 12, 8);
+  scene.add(sun);
+
+  // Bars laid out in a grid, biggest balance first.
+  const columns = Math.min(rows.length, 6);
+  const gap = 1.8;
+  const maxDue = Math.max(...rows.map((r) => r.balance_due));
+  const maxHeight = 5;
+  const labelLimit = stage.clientWidth < 600 ? 3 : 8; // label the biggest few; the rest via hover and table
+  const bars = [];
+
+  rows.forEach((row, i) => {
+    const col = i % columns;
+    const rowIndex = Math.floor(i / columns);
+    const height = Math.max(0.08, (row.balance_due / maxDue) * maxHeight);
+    const bucket = bucketFor(row.oldest_unpaid_days);
+
+    const material = new THREE.MeshStandardMaterial({ color: css(bucket.token), roughness: 0.55, metalness: 0.05 });
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.1, height, 1.1), material);
+    mesh.position.set((col - (columns - 1) / 2) * gap, height / 2, rowIndex * gap);
+    mesh.userData = { row, bucket, baseColor: material.color.clone() };
+    scene.add(mesh);
+    bars.push(mesh);
+
+    if (i < labelLimit) {
+      const div = document.createElement("div");
+      div.className = "bar-label";
+      div.innerHTML = `<b>${rupees(row.balance_due)}</b><small>${escapeHtml(row.name)}</small>`;
+      const label = new CSS2DObject(div);
+      label.position.set(0, height / 2, 0);
+      mesh.add(label);
+    }
+  });
+
+  // Floor grid sized to the bars.
+  const rowsOfBars = Math.ceil(rows.length / columns);
+  const floorSize = Math.max(columns, rowsOfBars) * gap + 2;
+  const grid = new THREE.GridHelper(floorSize, Math.round(floorSize / gap) * 2, css("--baseline"), css("--grid"));
+  grid.position.z = ((rowsOfBars - 1) * gap) / 2;
+  scene.add(grid);
+
+  const centerZ = ((rowsOfBars - 1) * gap) / 2;
+  const distance = Math.max(9, floorSize * 1.35);
+  camera.position.set(distance * 0.18, distance * 0.42, centerZ + distance * 0.9);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, maxHeight * 0.35, centerZ);
+  controls.enableDamping = true;
+  controls.maxPolarAngle = Math.PI / 2.1;
+  controls.minDistance = 4;
+  controls.maxDistance = 40;
+  controls.autoRotate = !reduceMotion;
+  controls.autoRotateSpeed = 0.6;
+  controls.addEventListener("start", () => (controls.autoRotate = false));
+
+  function applyTheme() {
+    scene.background = new THREE.Color(css("--surface"));
+    grid.material.color = new THREE.Color(css("--grid"));
+    bars.forEach((bar) => {
+      const color = new THREE.Color(css(bar.userData.bucket.token));
+      bar.userData.baseColor = color.clone();
+      bar.material.color.copy(color);
+    });
+  }
+  applyTheme();
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
+
+  function resize() {
+    const { clientWidth: w, clientHeight: h } = stage;
+    renderer.setSize(w, h);
+    labelRenderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage);
+  resize();
+
+  // Hover: find the bar under the pointer and show its details.
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+  let hovered = null;
+
+  function setHovered(bar) {
+    if (hovered === bar) return;
+    if (hovered) hovered.material.color.copy(hovered.userData.baseColor);
+    hovered = bar;
+    if (hovered) hovered.material.color.copy(hovered.userData.baseColor).offsetHSL(0, 0, 0.08);
+    renderer.domElement.style.cursor = hovered ? "pointer" : "";
+  }
+
+  renderer.domElement.addEventListener("pointermove", (event) => {
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    const hit = raycaster.intersectObjects(bars)[0];
+    setHovered(hit ? hit.object : null);
+
+    if (!hit) {
+      tooltip.style.display = "none";
+      return;
+    }
+    const { row, bucket } = hit.object.userData;
+    tooltip.innerHTML = `
+      <div class="name">${escapeHtml(row.name)}</div>
+      <div class="row"><span>Balance due</span><b>${rupees(row.balance_due)}</b></div>
+      <div class="row"><span>Unpaid bills</span><b>${row.unpaid_invoices}</b></div>
+      <div class="row"><span>Oldest bill</span><b>${row.oldest_unpaid_days} days</b></div>
+      <div class="row"><span class="status"><i class="swatch" style="background: var(${bucket.token})"></i>${bucket.label}</span></div>`;
+    tooltip.style.display = "block";
+    const x = event.clientX - rect.left + 14;
+    const y = event.clientY - rect.top + 14;
+    tooltip.style.left = `${Math.min(x, rect.width - tooltip.offsetWidth - 8)}px`;
+    tooltip.style.top = `${Math.min(y, rect.height - tooltip.offsetHeight - 8)}px`;
+  });
+  renderer.domElement.addEventListener("pointerleave", () => {
+    setHovered(null);
+    tooltip.style.display = "none";
+  });
+
+  renderer.setAnimationLoop(() => {
+    controls.update();
+    renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
+  });
+}
+
+// ---------- Start ----------
+
+renderLegend();
+document.getElementById("logout").addEventListener("click", () => { clearToken(); location.reload(); });
+try {
+  const { rows, source } = await loadRows();
+  document.getElementById("source").textContent = source;
+  renderSummary(rows);
+  renderTable(rows);
+  if (rows.length) {
+    renderScene(rows);
+  } else {
+    showMessage("Nobody owes the shop anything right now.");
+  }
+} catch (error) {
+  if (error instanceof NeedLogin) {
+    showLogin();
+  } else if (error instanceof NotAllowed) {
+    document.getElementById("logout").hidden = false;
+    showMessage("Only the owner can see the dues. Log out and log in as the owner.");
+  } else showMessage(
+    `Couldn't load the dues (${escapeHtml(error.message)}). Make sure the server is running, ` +
+    `or <a href="?demo">view sample data</a>.`
+  );
+}
+</script>
+</body>
+</html>

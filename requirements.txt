@@ -1,2 +1,5 @@
 fastapi[standard]
 sqlmodel
+pyjwt
+pwdlib[argon2]
+pytest
